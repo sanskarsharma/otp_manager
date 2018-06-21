@@ -1,6 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent"
-    android:layout_height="match_parent">
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
-</android.support.constraint.ConstraintLayout>
+    <TextView
+        android:id="@+id/label_to"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="15sp"
+
+        android:text="To : " />
+
+    <TextView
+        android:id="@+id/label_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="15sp"
+        android:textColor="#000000"
+        android:layout_marginTop="5dp"
+        android:text="Message Content :" />
+
+    <TextView
+        android:id="@+id/label_otp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+
+        android:text="Your OTP is : " />
+
+    <EditText
+        android:id="@+id/editText_OTP"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:maxLength="6"
+        android:inputType="number"
+        />
+
+    <TextView
+        android:id="@+id/label_extra_msg"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+
+        android:text="Extra Message :" />
+
+    <EditText
+        android:id="@+id/editText_ExtraMSG"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:maxLength="100"
+        android:inputType="textImeMultiLine"
+        />
+
+
+</LinearLayout>

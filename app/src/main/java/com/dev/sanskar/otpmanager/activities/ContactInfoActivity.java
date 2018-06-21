@@ -2,22 +2,32 @@ package com.dev.sanskar.otpmanager.activities;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.InputType;
 import android.util.Log;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
+import com.afollestad.materialdialogs.internal.MDButton;
 import com.android.volley.AuthFailureError;
+import com.android.volley.NoConnectionError;
 import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.dev.sanskar.otpmanager.R;
+import com.dev.sanskar.otpmanager.database.DBhandler;
+import com.dev.sanskar.otpmanager.fragments.SentMessagesFragment;
 import com.dev.sanskar.otpmanager.models.ContactModel;
+import com.dev.sanskar.otpmanager.models.SentMessageModel;
 import com.dev.sanskar.otpmanager.utils.RequestQueueSingleton;
 import com.dev.sanskar.otpmanager.utils.Utils;
 import com.github.ppamorim.dragger.DraggerActivity;
@@ -32,18 +42,18 @@ import java.util.concurrent.TimeUnit;
 
 import es.dmoral.toasty.Toasty;
 
-public class ContactInfoActivity extends DraggerActivity {
+public class ContactInfoActivity extends AppCompatActivity {
 
     TextView name, number;
     FloatingActionButton fab_sms;
+
+    MaterialDialog progress_dialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_contact_info);
 
-        setDraggerPosition(DraggerPosition.TOP);
-        setSlideEnabled(false);
 
         setTitle("Contact Details");
         name = (TextView) findViewById(R.id.tv_info_name);
@@ -56,36 +66,88 @@ public class ContactInfoActivity extends DraggerActivity {
         name.setText(model.getName());
         number.setText(model.getNumber());
 
+        progress_dialog = new MaterialDialog.Builder(this)
+                .title("Sending ...")
+                .content("OTP code is being sent")
+                .progress(true, 0).build();
+
+
         fab_sms.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                send_request(model);
+
+                MaterialDialog dialog = new MaterialDialog.Builder(ContactInfoActivity.this)
+                        .title("Compose OTP Message")
+                        .positiveText("Send")
+                        .negativeText("Cancel")
+                        .customView(R.layout.compose_dialog_layout,true)
+                        .onPositive(new MaterialDialog.SingleButtonCallback() {
+                            @Override
+                            public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
+                                View view = dialog.getCustomView();
+                                EditText otp = view.findViewById(R.id.editText_OTP);
+                                if(otp.getText().toString().trim().equals("")){
+                                    otp.setError("OTP cannot be empty");
+                                    Toasty.info(getApplicationContext(),"OTP cannot be empty, Try again.", Toast.LENGTH_LONG,false).show();
+                                    return;
+                                }
+
+                                EditText extra = view.findViewById(R.id.editText_ExtraMSG);
+
+                                String msg = "Your OTP is : "+ otp.getText().toString()+ "\n";
+                                String extra_msg = extra.getText().toString();
+                                msg = msg + extra_msg;
+
+                                progress_dialog.show();
+                                send_request(model, msg, otp.getText().toString() );
+                            }
+                        })
+                        .show();
+
+                View view = dialog.getCustomView();
+                TextView tv_to = view.findViewById(R.id.label_to);
+                tv_to.setText("To : "+ model.getName()+ " ("+model.getNumber()+")");
+                EditText otp = (EditText) view.findViewById(R.id.editText_OTP);
+                otp.setText(Utils.generateOTP());
+                EditText extra_msg = (EditText) view.findViewById(R.id.editText_ExtraMSG);
+                extra_msg.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_IME_MULTI_LINE | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_VARIATION_LONG_MESSAGE);
+                extra_msg.setText("Thank you !");
+
+
+
                 //Toasty.info(getApplicationContext(),"HENLO" + name.getText(), Toast.LENGTH_SHORT,false).show();
             }
         });
 
-//        getSupportActionBar().setDisplayShowHomeEnabled(true);
-//        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
           if(getSupportActionBar() !=null){
-              getSupportActionBar().hide();
+              //getSupportActionBar().hide();
           }
 
     }
 
-//    @Override
-//    public boolean onSupportNavigateUp(){
-//        closeActivity();
-//        return true;
-//    }
+    @Override
+    public boolean onSupportNavigateUp(){
+        if(getSupportActionBar() !=null){
+            getSupportActionBar().hide();
+        }
+        finish();
+        return true;
+    }
 
     @Override
     public void onBackPressed() {
         super.onBackPressed();
-        closeActivity();
+
+        if(getSupportActionBar() !=null){
+            getSupportActionBar().hide();
+        }
+        finish();
     }
 
 
-    void send_request(final ContactModel model){
+    void send_request(final ContactModel model, final String text_msg, final String otp_code){
 
 
 
@@ -94,52 +156,24 @@ public class ContactInfoActivity extends DraggerActivity {
                     @Override
                     public void onResponse(String response) {
 
-                        // stop progress dialog
-                        // progressDialog.dismiss();
+                         //stop progress dialog
+                         progress_dialog.dismiss();
 
                         if (response == null) {
-                            Toasty.info(getApplicationContext(), "Profile registration to the Server was Unsuccesfull \n Please try again via 'Sync with server' in 3-dot menu ", Toast.LENGTH_LONG).show();
+                            Toasty.info(getApplicationContext(), "Connection to the server was Unsuccesfull \n Please try again.", Toast.LENGTH_SHORT).show();
                             return;
                         }
 
                         try {
 
                             JSONObject response_obj = new JSONObject(response);
-                            Toasty.info(getApplicationContext(),"RESPONSE : " + response_obj.getString("message-count"), Toast.LENGTH_LONG,false).show();
+                            Toasty.info(getApplicationContext(),"Message queued Successfully", Toast.LENGTH_LONG,false).show();
                             Log.e("MESSAGE_INFOOOOOOOOOO_NNEEXXOOMMOO", response_obj.toString());
-//                            String status = response_obj.getString("status");
 
-//                            if(status.equals("OK")){
+                            SentMessageModel sent_model = new SentMessageModel(model, System.currentTimeMillis()+"", text_msg, response, otp_code);
 
-//                                String mobile_number = response_obj.getString("mobile_number");
-//                                Toasty.info(getApplicationContext(), "Authentication Successful !", Toast.LENGTH_SHORT).show();
-//
-//
-//                                PhoneAuthProvider.getInstance().verifyPhoneNumber(
-//                                        num_again,        // Phone number to verify
-//                                        60,                 // Timeout duration
-//                                        TimeUnit.SECONDS,   // Unit of timeout
-//                                        LoginActivity.this,               // Activity (for callback binding)
-//                                        mCallbacks);        // OnVerificationStateChangedCallbacks
-
-
-
-//                            }else if(status.equals("FAIL")){
-
-//                                String status_message = "";
-//                                if(response_obj.has("message") && !response_obj.isNull("message")){
-//                                    status_message = response_obj.getString("message");
-//                                }
-//
-//                                MaterialDialog materialDialog = new MaterialDialog.Builder(LoginActivity.this)
-//                                        .title("Authentication Failed")
-//                                        .titleColor(Color.parseColor("#ff8533"))
-//                                        .content("You contact number is not authenticated to use this app. \nAuth status : "+status_message+"\nIf you think this is a mistake, please contact admin. \nEmail : feed@ssipmt.com")
-//                                        .contentColor(Color.BLACK)
-//                                        .icon(getDrawable(R.drawable.ic_info_black_24dp))
-//                                        .positiveText("Dismiss")
-//                                        .show();
-//                            }
+                            DBhandler dbh = new DBhandler(getApplicationContext());
+                            dbh.addData(sent_model);
 
 
                         } catch (JSONException e) {
@@ -152,13 +186,20 @@ public class ContactInfoActivity extends DraggerActivity {
                 }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                // error in getting json
-                Log.d("CONTACT_INFO_ACTIVITY", "Error: " + error.getMessage());
 
                 // stop progress dialog
-                //progressDialog.dismiss();
+                progress_dialog.dismiss();
 
-                Toasty.info(getApplicationContext(), "Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+
+                // error in getting json
+                Log.d("CONTACT_INFO_ACTIVITY", "Error: " + error);
+                if(error instanceof NoConnectionError){
+                    Toasty.info(getApplicationContext(), "No Internet Connection, Please try again.", Toast.LENGTH_SHORT).show();
+                }else {
+                    Toasty.info(getApplicationContext(), "Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+
+
             }
 
         }){
@@ -171,7 +212,7 @@ public class ContactInfoActivity extends DraggerActivity {
                 params.put("api_secret", "MWsq9aD77JZFa9Dq" );
                 params.put("to", "91"+ model.getNumber());
                 params.put("from", "SanskarSharma" );
-                params.put("text", "This_is_just_texting");
+                params.put("text", text_msg);
 
 
 
@@ -187,6 +228,8 @@ public class ContactInfoActivity extends DraggerActivity {
 
 
     }
+
+
 
 
 

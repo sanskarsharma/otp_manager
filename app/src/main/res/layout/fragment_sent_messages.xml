@@ -4,10 +4,23 @@
     android:layout_height="match_parent"
     tools:context="com.dev.sanskar.otpmanager.fragments.SentMessagesFragment">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
+    <android.support.v7.widget.RecyclerView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="@string/hello_blank_fragment" />
+        android:layout_height="wrap_content"
+        android:id="@+id/recycler_view_sentmessages"
+        >
+
+    </android.support.v7.widget.RecyclerView>
+
+    <TextView
+        android:id="@+id/tv_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="No messages sent !"
+        android:layout_marginTop="30dp"
+        android:textSize="15sp"
+        android:gravity="center_horizontal"
+
+        />
 
 </FrameLayout>

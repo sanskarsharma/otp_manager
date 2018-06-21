@@ -18,6 +18,11 @@ import android.widget.Toast;
 import com.dev.sanskar.otpmanager.R;
 import com.dev.sanskar.otpmanager.adapters.ContactsAdapter;
 import com.dev.sanskar.otpmanager.models.ContactModel;
+import com.dev.sanskar.otpmanager.utils.Utils;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,6 +36,7 @@ import es.dmoral.toasty.Toasty;
 public class ContactsFragment extends Fragment {
 
     private static final String ARG_SECTION_NUMBER = "section_number";
+
 
     RecyclerView recyclerView;
 
@@ -59,7 +65,7 @@ public class ContactsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        Toasty.info(getActivity(), "We got : " +getArguments().getString(ARG_SECTION_NUMBER), Toast.LENGTH_SHORT, false).show();
+        //Toasty.info(getActivity(), "We got : " +getArguments().getString(ARG_SECTION_NUMBER), Toast.LENGTH_SHORT, false).show();
 
         recyclerView = view.findViewById(R.id.recycler_view_contacts);
         refreshFeed();
@@ -70,26 +76,25 @@ public class ContactsFragment extends Fragment {
     private void refreshFeed(){
 
         List<ContactModel> items = new ArrayList<ContactModel>();
-        items.add(new ContactModel("Sanskar Sharma", "8349404499"));
-        items.add(new ContactModel("Santosh Sharma", "9425208248"));
-        items.add(new ContactModel("Anita Sharma", "9434208249"));
-        items.add(new ContactModel("Shubhi Sharma", "9527214931"));
 
-//        items = ...    take list of FeedPostModel here after parsing json and combining with older json from prefs
-//        String feedstr = Utils.getData(ConstantNames.PREF_FEED_JSON,"");
-//        if(!feedstr.equals(""))
-//            items = MapParsing.feedParser(feedstr);
 
-//        DBhandler dbh = new DBhandler(getApplicationContext());
-//        items = dbh.getAllEntries();
+        try {
+            JSONArray jarr = new JSONArray(Utils.JSON_CONTACTS);
+
+            for(int i=0; i<jarr.length();i++){
+                JSONObject obj = jarr.getJSONObject(i);
+                items.add(new ContactModel(obj.getString("name"),obj.getString("number")));
+            }
+        } catch (JSONException e) {
+            Toasty.info(getActivity(),"ERROR JSON ",Toast.LENGTH_SHORT,false).show();
+            e.printStackTrace();
+        }
 
 
         if(!items.isEmpty()){
 
             Log.e("from refreshfeed()"," items is NOT empty");
-            Log.e("from refreshfeed()"," items : \n "+ items.toString());
-
-            Collections.reverse(items);             // reversing list so that new entries show on top
+            Log.e("from refreshfeed()"," items : \n "+ "");
 
             ContactsAdapter adapter = new ContactsAdapter(items);
             RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getActivity());

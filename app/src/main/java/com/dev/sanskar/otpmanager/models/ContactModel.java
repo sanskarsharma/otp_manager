@@ -21,6 +21,23 @@ public class ContactModel implements Parcelable{
         this.number = number;
     }
 
+    public String toString(){
+
+        StringBuilder sb = new StringBuilder("");
+        sb.append(this.name);
+        sb.append("$$");
+        sb.append(this.number);
+
+        return sb.toString();
+    }
+
+    public static ContactModel fromString(String db_string){
+
+        String[] arr = db_string.split("\\$\\$");
+
+        return new ContactModel(arr[0],arr[1]);
+    }
+
 
     public String getName() {
         return name;

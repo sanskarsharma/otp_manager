@@ -82,7 +82,7 @@ public class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.MyView
                 intu.putExtra("model", model);
                 view.getContext().startActivity(intu);
 
-                Toasty.info(view.getContext(), datu.getName(), Toast.LENGTH_SHORT, false).show();
+               // Toasty.info(view.getContext(), datu.getName(), Toast.LENGTH_SHORT, false).show();
 
             }
         });
